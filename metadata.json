@@ -1,0 +1,5 @@
+{
+  "name": "HEXA'S Homework Manager",
+  "description": "A professional homework management platform featuring a lock/unlock mechanism for curriculum days. Students can only access days unlocked by their teacher.",
+  "requestFramePermissions": []
+}
