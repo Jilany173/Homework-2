@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 interface LoginProps {
@@ -7,6 +8,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,8 +45,14 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         localStorage.setItem('username', profile.username || email.split('@')[0]);
         if (profile.batch_id) localStorage.setItem('userBatchId', profile.batch_id);
         localStorage.setItem('currentUserId', data.user.id);
-        
+
         onLogin(profile.role as 'student' | 'teacher' | 'admin');
+
+        // public_user goes to practice zone, not student portal
+        if (profile.role === 'public_user') {
+          navigate('/practice-zone');
+          return;
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check credentials.');
@@ -73,7 +81,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         <div className="bg-slate-800/40 backdrop-blur-3xl p-8 rounded-[2.5rem] shadow-2xl border border-slate-700/50">
           <h2 className="text-2xl font-black text-white uppercase tracking-tighter mb-8 text-center leading-none">Portal Login</h2>
-          
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
@@ -122,11 +130,42 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               ) : 'Enter Portal'}
             </button>
           </form>
-          
+
           <p className="mt-8 text-center text-[9px] text-slate-500 font-bold uppercase tracking-widest">
             Protected Academic Environment
           </p>
         </div>
+      </div>
+
+      {/* ── Practice Without Login banner ── */}
+      <div className="relative z-10 mt-8 w-full max-w-md px-4">
+        <button
+          onClick={() => navigate('/practice-zone')}
+          className="w-full group relative overflow-hidden flex items-center gap-4 px-6 py-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-blue-600/20 hover:border-blue-500/40 transition-all duration-300 shadow-lg"
+        >
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-400/10 to-purple-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+          {/* Icon */}
+          <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-900/30 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 012.828 0l.172.172a2 2 0 010 2.828L12 16H9v-3zM3 20h18" />
+            </svg>
+            {/* Pulse ring */}
+            <span className="absolute inset-0 rounded-xl border-2 border-blue-400/40 animate-ping opacity-50"></span>
+          </div>
+
+          {/* Text */}
+          <div className="relative text-left flex-1">
+            <p className="text-white font-black text-sm uppercase tracking-wider leading-none mb-1">Practice Without Login</p>
+            <p className="text-slate-400 text-[10px] font-medium">Free IELTS tests — no account needed</p>
+          </div>
+
+          {/* Arrow */}
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all duration-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </div>
   );

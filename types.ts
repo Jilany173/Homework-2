@@ -1,7 +1,7 @@
 
 export type TabType = 'Speaking' | 'Listening' | 'Reading' | 'Writing';
 export type WritingTaskType = 'Task 1' | 'Task 2';
-export type UserRole = 'Super Admin' | 'Admin' | 'Moderator' | 'Teacher' | 'Student';
+export type UserRole = 'Super Admin' | 'Admin' | 'Moderator' | 'Teacher' | 'Student' | 'public_user';
 
 export interface AttendanceRecord {
   userId: string;
@@ -16,7 +16,7 @@ export interface Batch {
   type: 'HICU' | 'IELTS';
   startDate: string;
   endDate: string;
-  teacherId?: string; 
+  teacherId?: string;
   maxStudents: number;
   currentStudents: number;
   status: 'Active' | 'Completed';
@@ -27,7 +27,7 @@ export interface Batch {
 export interface StudentProgress {
   userId: string;
   username: string;
-  completedDays: number[]; 
+  completedDays: number[];
   overallPercentage: number;
   isFullyCompleted: boolean;
   isPresentToday?: boolean; // New field for attendance tracking

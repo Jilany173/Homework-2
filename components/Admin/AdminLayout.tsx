@@ -16,6 +16,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
     { label: 'User Management', path: '/admin/users', icon: '👥' },
     { label: 'Batch Settings', path: '/admin/batches', icon: '📅' },
     { label: 'Content Manager', path: '/admin/content', icon: '📝' },
+    { label: 'Test Library', path: '/admin/tests', icon: '🎧' },
     { label: 'Evaluate Submissions', path: '/admin/review', icon: '✅' },
   ];
 
@@ -47,11 +48,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-8 border-b border-slate-800">
-           <div className="flex items-baseline">
-              <span className="text-white font-black text-2xl tracking-tighter">HEXA'S</span>
-              <span className="ml-1 text-red-500 text-[11px] font-bold uppercase tracking-widest">Admin</span>
-           </div>
-           <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mt-1">Management Hub</p>
+          <div className="flex items-baseline">
+            <span className="text-white font-black text-2xl tracking-tighter">HEXA'S</span>
+            <span className="ml-1 text-red-500 text-[11px] font-bold uppercase tracking-widest">Admin</span>
+          </div>
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] mt-1">Management Hub</p>
         </div>
 
         <nav className="flex-1 p-6 space-y-2">
@@ -60,11 +61,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
               key={item.path}
               to={item.path}
               onClick={() => setIsSidebarOpen(false)}
-              className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm transition-all ${
-                location.pathname === item.path 
-                ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40' 
-                : 'hover:bg-slate-800 hover:text-slate-200'
-              }`}
+              className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm transition-all ${location.pathname === item.path
+                  ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40'
+                  : 'hover:bg-slate-800 hover:text-slate-200'
+                }`}
             >
               <span className="text-xl">{item.icon}</span>
               {item.label}

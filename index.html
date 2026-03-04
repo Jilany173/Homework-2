@@ -1,12 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EduTrack - Homework Management</title>
+  <title>Hexa's Zindabazar - Homework Management</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+    rel="stylesheet">
   <script>
     tailwind.config = {
       theme: {
@@ -21,26 +23,31 @@
   </script>
   <style>
     body {
-      background-color: #f8fafc; /* slate-50 */
+      background-color: #f8fafc;
+      /* slate-50 */
       transition: background-color 0.3s ease, color 0.3s ease;
     }
+
     .serif-font {
       font-family: 'Merriweather', serif;
     }
+
     .scrollbar-hide::-webkit-scrollbar {
       display: none;
     }
+
     .scrollbar-hide {
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+
     .glass-effect {
       background: rgba(255, 255, 255, 0.7);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.3);
     }
   </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
@@ -52,7 +59,10 @@
 }
 </script>
 </head>
+
 <body>
   <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

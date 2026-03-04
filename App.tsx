@@ -13,10 +13,15 @@ import ContentManager from './components/Admin/ContentManager';
 import HomeworkReview from './components/Admin/HomeworkReview';
 import UserManager from './components/Admin/UserManager';
 import BatchManager from './components/Admin/BatchManager';
+import TestLibrary from './components/Admin/TestLibrary';
 import TeacherLayout from './components/Teacher/TeacherLayout';
 import TeacherDashboard from './components/Teacher/TeacherDashboard';
 import ClassControl from './components/Teacher/ClassControl';
 import PracticeZone from './components/PracticeZone';
+import Signup from './components/Signup';
+import ListeningTestEngine from './components/TestEngine/ListeningTestEngine';
+import ReadingTestEngine from './components/TestEngine/ReadingTestEngine';
+import WritingTestEngine from './components/TestEngine/WritingTestEngine';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -28,7 +33,7 @@ const App: React.FC = () => {
     const initAuth = async () => {
       // ১. বর্তমান সেশন চেক করা
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -40,21 +45,40 @@ const App: React.FC = () => {
           localStorage.setItem('userRole', profile.role);
           if (profile.batch_id) localStorage.setItem('userBatchId', profile.batch_id);
           setUserRole(profile.role);
-          setIsAuthenticated(true);
+          // public_user should NOT get student portal access
+          if (profile.role !== 'public_user') {
+            setIsAuthenticated(true);
+          }
         }
       }
 
       // ২. অথেন্টিকেশন স্টেট চেঞ্জ লিসেন করা
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_OUT') {
           setIsAuthenticated(false);
           setUserRole(null);
           localStorage.clear();
         } else if (event === 'SIGNED_IN' && session) {
-          setIsAuthenticated(true);
-          // রোল সেট করা হবে Login component থেকে অথবা রিফ্রেশে উপরের useEffect থেকে
+          // Profile fetch করে role নিশ্চিত করা — এটাই মূল fix
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role, batch_id, username')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile) {
+            localStorage.setItem('userRole', profile.role);
+            if (profile.batch_id) localStorage.setItem('userBatchId', profile.batch_id);
+            if (profile.username) localStorage.setItem('username', profile.username);
+            setUserRole(profile.role);
+          }
+          // public_user stays on practice zone — not in student portal
+          if (profile?.role !== 'public_user') {
+            setIsAuthenticated(true);
+          }
         }
       });
+
 
       setIsLoading(false);
       return () => subscription.unsubscribe();
@@ -64,6 +88,8 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogin = (role: string) => {
+    // public_user should NOT access the student portal
+    if (role === 'public_user') return;
     setIsAuthenticated(true);
     setUserRole(role);
     setIsBatchExpired(false);
@@ -74,7 +100,7 @@ const App: React.FC = () => {
     setIsAuthenticated(false);
     setUserRole(null);
     localStorage.clear();
-    
+
     try {
       await supabase.auth.signOut();
     } catch (error) {
@@ -96,17 +122,26 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <Routes>
-        <Route 
-          path="/login" 
-          element={!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to={userRole === 'admin' || userRole === 'Admin' || userRole === 'Super Admin' ? "/admin" : userRole === 'teacher' || userRole === 'Teacher' ? "/teacher" : "/"} replace />} 
+        <Route
+          path="/login"
+          element={
+            !isAuthenticated
+              ? <Login onLogin={handleLogin} />
+              : <Navigate to={
+                userRole === 'admin' || userRole === 'Admin' || userRole === 'Super Admin' ? '/admin'
+                  : userRole === 'teacher' || userRole === 'Teacher' ? '/teacher'
+                    : userRole === 'public_user' ? '/practice-zone'
+                      : '/'
+              } replace />
+          }
         />
-        
-        {/* Student Routes */}
+
+        {/* Student Routes with Standard Layout */}
         <Route element={isAuthenticated && (userRole === 'student' || userRole === 'Student') ? <Layout onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
           <Route path="/" element={<CourseSelection />} />
-          <Route path="/practice-zone" element={<PracticeZone />} />
           <Route path="/course/:courseType/:mode" element={isBatchExpired ? <Navigate to="/expired" /> : <Dashboard />} />
           <Route path="/course/:courseType/:mode/day/:dayId" element={isBatchExpired ? <Navigate to="/expired" /> : <DayDetail />} />
+
           <Route path="/expired" element={
             <div className="flex-1 flex flex-col items-center justify-center py-20 text-center px-4">
               <div className="w-24 h-24 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-4xl mb-6 border-4 border-red-100">🔒</div>
@@ -117,6 +152,13 @@ const App: React.FC = () => {
           } />
         </Route>
 
+        {/* ── PUBLIC ── Practice Zone + Signup: no auth required ── */}
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/practice-zone" element={<PracticeZone isAuthenticated={isAuthenticated} />} />
+        <Route path="/practice-zone/listening/:testId" element={<ListeningTestEngine />} />
+        <Route path="/practice-zone/reading/:testId" element={<ReadingTestEngine />} />
+        <Route path="/practice-zone/writing/:testId" element={<WritingTestEngine />} />
+
         {/* Admin Routes */}
         <Route element={isAuthenticated && (userRole === 'admin' || userRole === 'Admin' || userRole === 'Super Admin') ? <AdminLayout onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
           <Route path="/admin" element={<AdminDashboard />} />
@@ -124,6 +166,7 @@ const App: React.FC = () => {
           <Route path="/admin/users" element={<UserManager />} />
           <Route path="/admin/batches" element={<BatchManager />} />
           <Route path="/admin/review" element={<HomeworkReview />} />
+          <Route path="/admin/tests" element={<TestLibrary />} />
         </Route>
 
         {/* Teacher Routes */}
