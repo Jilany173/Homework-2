@@ -542,15 +542,67 @@ const ListeningTestEngine: React.FC = () => {
 
     const applyHighlight = () => {
         if (!ctxMenu?.range) return;
+        const hlId = Date.now().toString();
+        const range = ctxMenu.range;
+
         try {
-            const mark = document.createElement('mark');
-            mark.className = 'hl-yellow';
-            mark.dataset.hlId = Date.now().toString();
-            ctxMenu.range.surroundContents(mark);
-            setHighlights(prev => [...prev, { id: mark.dataset.hlId!, text: ctxMenu.selectedText }]);
-        } catch {
-            // Range spans multiple elements — ignore
+            const treeWalker = document.createTreeWalker(
+                range.commonAncestorContainer,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode: (node) => {
+                        if (!range.intersectsNode(node)) return NodeFilter.FILTER_REJECT;
+                        if (node.nodeValue?.trim() === '') return NodeFilter.FILTER_REJECT;
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                }
+            );
+
+            const nodesToWrap: Text[] = [];
+            if (range.commonAncestorContainer.nodeType === Node.TEXT_NODE) {
+                nodesToWrap.push(range.commonAncestorContainer as Text);
+            } else {
+                let currentNode = treeWalker.nextNode();
+                while (currentNode) {
+                    nodesToWrap.push(currentNode as Text);
+                    currentNode = treeWalker.nextNode();
+                }
+            }
+
+            nodesToWrap.forEach((node) => {
+                const isFirst = node === range.startContainer;
+                const isLast = node === range.endContainer;
+
+                let startOffset = isFirst ? range.startOffset : 0;
+                let endOffset = isLast ? range.endOffset : (node.nodeValue?.length || 0);
+
+                if (startOffset >= endOffset) return;
+
+                const textToWrap = node.nodeValue?.substring(startOffset, endOffset) || "";
+                const beforeText = node.nodeValue?.substring(0, startOffset) || "";
+                const afterText = node.nodeValue?.substring(endOffset) || "";
+
+                if (!textToWrap.trim()) return;
+
+                const mark = document.createElement('mark');
+                mark.className = 'hl-yellow';
+                mark.dataset.hlId = hlId;
+                mark.textContent = textToWrap;
+
+                const parent = node.parentNode;
+                if (parent) {
+                    if (beforeText) parent.insertBefore(document.createTextNode(beforeText), node);
+                    parent.insertBefore(mark, node);
+                    if (afterText) parent.insertBefore(document.createTextNode(afterText), node);
+                    parent.removeChild(node);
+                }
+            });
+
+            setHighlights(prev => [...prev, { id: hlId, text: ctxMenu.selectedText }]);
+        } catch (e) {
+            console.error("Highlight error:", e);
         }
+
         window.getSelection()?.removeAllRanges();
         setCtxMenu(null);
     };
