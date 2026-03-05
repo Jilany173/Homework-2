@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { cambridge18_reading } from '../../src/data/mockTests/cambridge18_reading';
 
-const TEST_ID = 'cam18_reading';
-const TOTAL_SECONDS = 60 * 60; // 60 minutes
-const testData = cambridge18_reading;
+const mockTestRegistry: Record<string, any> = {
+    'cam18_reading': cambridge18_reading
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatTime = (s: number) => {
@@ -31,11 +31,12 @@ const getGroupQuestions = (g: any): { id: string; number: number }[] => {
 // ─── Results Screen ────────────────────────────────────────────────────────────
 interface ResultsProps {
     answers: Record<string, string>;
+    testData: any;
     answerKey: Record<number, string>;
     onBack: () => void;
 }
 
-const ResultsScreen: React.FC<ResultsProps> = ({ answers, answerKey, onBack }) => {
+const ResultsScreen: React.FC<ResultsProps> = ({ answers, testData, answerKey, onBack }) => {
     const [activeTab, setActiveTab] = useState<'brief' | 'question-wise'>('brief');
     const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
     const [studentName, setStudentName] = useState<string | null>(null);
@@ -355,7 +356,7 @@ const ResultsScreen: React.FC<ResultsProps> = ({ answers, answerKey, onBack }) =
 };
 
 // ─── Passage Renderer ─────────────────────────────────────────────────────────
-const PassageText: React.FC<{ passage: typeof testData.passages[0] }> = ({ passage }) => (
+const PassageText: React.FC<{ passage: any }> = ({ passage }) => (
     <div className="prose prose-slate max-w-none text-[14px] leading-relaxed">
         <h2 className="text-lg font-black text-slate-900 mb-4">{passage.title}</h2>
         {passage.text.map((block: any, i: number) => {
@@ -578,7 +579,7 @@ const TableCompletionGroup: React.FC<{ group: any; answers: Record<string, strin
 );
 
 // ─── Question Panel ───────────────────────────────────────────────────────────
-const QuestionPanel: React.FC<{ passage: typeof testData.passages[0]; answers: Record<string, string>; onChange: (id: string, v: string) => void }> = ({ passage, answers, onChange }) => (
+const QuestionPanel: React.FC<{ passage: any; answers: Record<string, string>; onChange: (id: string, v: string) => void }> = ({ passage, answers, onChange }) => (
     <div>
         {passage.questionGroups.map((group: any, idx: number) => (
             <div key={idx} className="mb-2">
@@ -604,6 +605,13 @@ const QuestionPanel: React.FC<{ passage: typeof testData.passages[0]; answers: R
 // ─── Main Engine ──────────────────────────────────────────────────────────────
 const ReadingTestEngine: React.FC = () => {
     const navigate = useNavigate();
+    const { testId } = useParams<{ testId: string }>();
+    const TEST_ID_VAL = testId || 'cam18_reading';
+
+    const [testData, setTestData] = useState<any>(mockTestRegistry[TEST_ID_VAL] || cambridge18_reading);
+    const [isLoadingTest, setIsLoadingTest] = useState(!mockTestRegistry[TEST_ID_VAL]);
+
+    const TOTAL_SECONDS = (testData?.totalMinutes || 60) * 60;
     const [activePassage, setActivePassage] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
@@ -650,9 +658,55 @@ const ReadingTestEngine: React.FC = () => {
     };
 
 
+    // Block Ctrl+F during test
+    useEffect(() => {
+        const blockFind = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockFind, true);
+        return () => document.removeEventListener('keydown', blockFind, true);
+    }, []);
+
+    // Block right-click context menu during test
+    useEffect(() => {
+        const blockCtx = (e: MouseEvent) => e.preventDefault();
+        document.addEventListener('contextmenu', blockCtx);
+        return () => document.removeEventListener('contextmenu', blockCtx);
+    }, []);
+
+    // Load dynamic test data if not in registry
+    useEffect(() => {
+        const fetchDynamicTest = async () => {
+            if (mockTestRegistry[TEST_ID_VAL]) {
+                setIsLoadingTest(false);
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('reading_tests')
+                    .select('data')
+                    .eq('id', TEST_ID_VAL)
+                    .maybeSingle();
+
+                if (data?.data) {
+                    setTestData(data.data);
+                }
+            } catch (err) {
+                console.error("Error fetching dynamic test:", err);
+            } finally {
+                setIsLoadingTest(false);
+            }
+        };
+        fetchDynamicTest();
+    }, [TEST_ID_VAL]);
+
     // Fetch answer key
     useEffect(() => {
-        supabase.from('test_answer_keys').select('answers').eq('test_id', TEST_ID).maybeSingle()
+        supabase.from('test_answer_keys').select('answers').eq('test_id', TEST_ID_VAL).maybeSingle()
             .then(({ data }) => {
                 if (data?.answers && Object.keys(data.answers).length > 0) {
                     const key: Record<number, string> = {};
@@ -660,7 +714,7 @@ const ReadingTestEngine: React.FC = () => {
                     setAnswerKey(key);
                 }
             });
-    }, []);
+    }, [TEST_ID_VAL]);
 
     // Timer
     useEffect(() => {
@@ -814,13 +868,13 @@ const ReadingTestEngine: React.FC = () => {
     };
 
 
-    const countAnsweredInPassage = (p: typeof testData.passages[0]) => {
+    const countAnsweredInPassage = (p: any) => {
         let count = 0;
         p.questionGroups.forEach((g: any) => getGroupQuestions(g).forEach(q => { if (answers[q.id]) count++; }));
         return count;
     };
 
-    const totalQInPassage = (p: typeof testData.passages[0]) => {
+    const totalQInPassage = (p: any) => {
         let total = 0;
         p.questionGroups.forEach((g: any) => { total += getGroupQuestions(g).length; });
         return total;
@@ -857,7 +911,7 @@ const ReadingTestEngine: React.FC = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 const { error } = await supabase.from('test_submissions').insert({
-                    student_id: user.id, test_id: TEST_ID, test_type: 'reading',
+                    student_id: user.id, test_id: TEST_ID_VAL, test_type: 'reading',
                     answers, total_questions: total, attempted, correct, band_score: bandScore, time_spent_sec: timeSpent,
                 });
                 if (error) console.error("Test submission error:", error);
@@ -871,7 +925,7 @@ const ReadingTestEngine: React.FC = () => {
     }, [answers, answerKey]);
 
     if (showResults) {
-        return <ResultsScreen answers={answers} answerKey={answerKey} onBack={() => navigate('/practice-zone')} />;
+        return <ResultsScreen answers={answers} testData={testData} answerKey={answerKey} onBack={() => navigate('/practice-zone')} />;
     }
 
     const passage = testData.passages[activePassage];

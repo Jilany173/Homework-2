@@ -34,6 +34,25 @@ const WritingTestEngine = () => {
         return () => clearInterval(timer);
     }, [isTimerRunning, timeLeft]);
 
+    // Block Ctrl+F during test
+    useEffect(() => {
+        const blockFind = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockFind, true);
+        return () => document.removeEventListener('keydown', blockFind, true);
+    }, []);
+
+    // Block right-click context menu during test
+    useEffect(() => {
+        const blockCtx = (e: MouseEvent) => e.preventDefault();
+        document.addEventListener('contextmenu', blockCtx);
+        return () => document.removeEventListener('contextmenu', blockCtx);
+    }, []);
+
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;

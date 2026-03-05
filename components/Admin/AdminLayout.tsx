@@ -17,6 +17,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
     { label: 'Batch Settings', path: '/admin/batches', icon: '📅' },
     { label: 'Content Manager', path: '/admin/content', icon: '📝' },
     { label: 'Test Library', path: '/admin/tests', icon: '🎧' },
+    { label: 'Upload New Test', path: '/admin/upload-test', icon: '📤' },
     { label: 'Evaluate Submissions', path: '/admin/review', icon: '✅' },
   ];
 
@@ -62,8 +63,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onLogout }) => {
               to={item.path}
               onClick={() => setIsSidebarOpen(false)}
               className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm transition-all ${location.pathname === item.path
-                  ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40'
-                  : 'hover:bg-slate-800 hover:text-slate-200'
+                ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40'
+                : 'hover:bg-slate-800 hover:text-slate-200'
                 }`}
             >
               <span className="text-xl">{item.icon}</span>

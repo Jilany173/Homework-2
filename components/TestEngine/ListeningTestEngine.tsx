@@ -1,25 +1,30 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
     MultipleChoiceRenderer,
     FillInBlanksRenderer,
     InlineBlanksRenderer,
     MultipleChoiceCheckboxRenderer,
     MatchingDropdownRenderer,
+    MatchingTableRenderer,
+    MatchingDragDropRenderer,
+    FillInTableRenderer,
+    parseSimpleContent,
 } from './QuestionTypes';
 import { cambridge18_listening } from '../../src/data/mockTests/cambridge18_listening';
+import { cambridge18_listening_test2 } from '../../src/data/mockTests/cambridge18_listening_test2';
 import { supabase } from '../../lib/supabase';
 
 // --- Test Data ---
-const mockTestData = cambridge18_listening;
-const TOTAL_PARTS = mockTestData.parts.length;
-const TEST_ID = 'cam18_listening';
-const TOTAL_SECONDS = 28 * 60;
+const mockTestRegistry: Record<string, any> = {
+    'cam18_listening': cambridge18_listening,
+    'cam18_listening_test2': cambridge18_listening_test2,
+};
 
 // ─── Results Screen ────────────────────────────────────────────────────────────
 interface ResultsScreenProps {
     answers: Record<string, string>;
-    testData: typeof mockTestData;
+    testData: any;
     answerKey: Record<number, string>;
     onBack: () => void;
 }
@@ -66,12 +71,20 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ answers, testData, answer
                 q.content.forEach((item: any) => {
                     if (item.inline) processQ(item.inline.number, answers[item.inline.inputId], 'fill');
                 });
+            } else if (q.type === 'fill_in_table') {
+                q.rows.forEach((row: any) => {
+                    row.cells.forEach((cell: any) => {
+                        cell.content.forEach((item: any) => {
+                            if (item.inline) processQ(item.inline.number, answers[item.inline.inputId], 'fill');
+                        });
+                    });
+                });
             } else if (q.type === 'multiple_choice_checkbox') {
                 const selectedArr = answers[q.id] ? answers[q.id].split(',') : [];
                 for (let i = 0; i < q.maxSelections; i++) {
                     processQ(q.number + i, selectedArr[i], 'mc');
                 }
-            } else if (q.type === 'matching_dropdown') {
+            } else if (q.type === 'matching_dropdown' || q.type === 'matching_table' || q.type === 'matching_drag_drop') {
                 q.subQuestions.forEach((sq: any) => processQ(sq.number, answers[sq.id], 'mc'));
             } else {
                 processQ(q.number, answers[q.id], 'mc');
@@ -129,14 +142,14 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ answers, testData, answer
                     <div className="flex border-t border-slate-100 px-6 bg-slate-50/50 backdrop-blur-sm">
                         <button
                             onClick={() => setActiveTab('brief')}
-                            className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === 'brief' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === 'brief' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'} `}
                         >
                             Brief Overview
                             {activeTab === 'brief' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full shadow-[0_-2px_8px_rgba(79,70,229,0.5)]"></div>}
                         </button>
                         <button
                             onClick={() => { setActiveTab('question-wise'); setActiveQuestionIndex(0); }}
-                            className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === 'question-wise' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === 'question-wise' ? 'text-indigo-600' : 'text-slate-500 hover:text-slate-700'} `}
                         >
                             Question-Wise Analysis
                             {activeTab === 'question-wise' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full shadow-[0_-2px_8px_rgba(79,70,229,0.5)]"></div>}
@@ -253,7 +266,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ answers, testData, answer
                                                 <button
                                                     key={q.qNum}
                                                     onClick={() => setActiveQuestionIndex(idx)}
-                                                    className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-sm transition-all duration-300 ${bgClass} ${isActive ? 'scale-110 -translate-y-1' : ''}`}
+                                                    className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center font-black text-sm transition-all duration-300 ${bgClass} ${isActive ? 'scale-110 -translate-y-1' : ''} `}
                                                 >
                                                     {q.qNum}
                                                 </button>
@@ -267,7 +280,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ answers, testData, answer
                                     <div className="max-w-3xl mx-auto">
                                         <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 relative overflow-hidden">
                                             {/* Top corner indicator */}
-                                            <div className={`absolute -top-12 -right-12 w-24 h-24 rounded-full blur-2xl opacity-40 ${activeQ.isCorrect ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                                            <div className={`absolute -top-12 -right-12 w-24 h-24 rounded-full blur-2xl opacity-40 ${activeQ.isCorrect ? 'bg-emerald-500' : 'bg-rose-500'} `}></div>
 
                                             <div className="flex items-center gap-4 mb-8 border-b border-slate-200/60 pb-6">
                                                 <div className="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center text-xl font-black text-slate-700 border border-slate-100">
@@ -293,7 +306,7 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ answers, testData, answer
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                                                         Your Answer
                                                     </div>
-                                                    <div className={`w-full bg-white border-2 p-5 rounded-xl text-lg font-bold shadow-sm ${activeQ.isCorrect ? 'border-emerald-200 text-emerald-700' : 'border-rose-200 text-rose-600'}`}>
+                                                    <div className={`w - full bg - white border - 2 p - 5 rounded - xl text - lg font - bold shadow - sm ${activeQ.isCorrect ? 'border-emerald-200 text-emerald-700' : 'border-rose-200 text-rose-600'} `}>
                                                         {activeQ.studentAnswer}
                                                     </div>
                                                 </div>
@@ -355,9 +368,20 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ answers, testData, answer
 // ─── Main Engine ───────────────────────────────────────────────────────────────
 const ListeningTestEngine: React.FC = () => {
     const navigate = useNavigate();
+    const { testId } = useParams<{ testId: string }>();
+    const TEST_ID = testId || 'cam18_listening';
+
+    const [mockTestData, setMockTestData] = useState<any>(mockTestRegistry[TEST_ID] || mockTestRegistry['cam18_listening']);
+    const [isLoadingTest, setIsLoadingTest] = useState(!mockTestRegistry[TEST_ID]);
+
+    const TOTAL_PARTS = mockTestData?.parts?.length || 4;
+    const TOTAL_SECONDS = (mockTestData?.totalMinutes || 30) * 60;
+
     const audioRef = useRef<HTMLAudioElement>(null);
 
     const [activePart, setActivePart] = useState(1);
+    const [audioPart, setAudioPart] = useState(1);
+    const [testMode, setTestMode] = useState<'full' | 'practice'>('full');
     const [timeLeft, setTimeLeft] = useState(TOTAL_SECONDS);
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [showFinishModal, setShowFinishModal] = useState(false);
@@ -366,6 +390,7 @@ const ListeningTestEngine: React.FC = () => {
     const [answerKey, setAnswerKey] = useState<Record<number, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(true);
+    const [testStarted, setTestStarted] = useState(false);
     const startTimeRef = useRef(Date.now());
 
     // ── Highlight & Note state ──────────────────────────────────────────────────
@@ -402,6 +427,52 @@ const ListeningTestEngine: React.FC = () => {
         document.addEventListener('mouseup', onUp);
     };
 
+    // Block Ctrl+F during test
+    useEffect(() => {
+        const blockFind = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+        document.addEventListener('keydown', blockFind, true);
+        return () => document.removeEventListener('keydown', blockFind, true);
+    }, []);
+
+    // Block right-click context menu during test
+    useEffect(() => {
+        const blockCtx = (e: MouseEvent) => e.preventDefault();
+        document.addEventListener('contextmenu', blockCtx);
+        return () => document.removeEventListener('contextmenu', blockCtx);
+    }, []);
+
+    // Load dynamic test data if not in registry
+    useEffect(() => {
+        const fetchDynamicTest = async () => {
+            if (mockTestRegistry[TEST_ID]) {
+                setIsLoadingTest(false);
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('listening_tests')
+                    .select('data')
+                    .eq('id', TEST_ID) // Assuming the ID passed is the UUID or we can search by title/slug
+                    .maybeSingle();
+
+                if (data?.data) {
+                    setMockTestData(data.data);
+                }
+            } catch (err) {
+                console.error("Error fetching dynamic test:", err);
+            } finally {
+                setIsLoadingTest(false);
+            }
+        };
+        fetchDynamicTest();
+    }, [TEST_ID]);
+
     // Load answer key from Supabase on mount
     useEffect(() => {
         const fetchAnswerKey = async () => {
@@ -423,7 +494,7 @@ const ListeningTestEngine: React.FC = () => {
 
     // ── Timer ──────────────────────────────────────────────────────────────────
     useEffect(() => {
-        if (testFinished) return;
+        if (testFinished || !testStarted) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -435,27 +506,32 @@ const ListeningTestEngine: React.FC = () => {
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [testFinished]);
+    }, [testFinished, testStarted]);
 
-    // ── Audio: change source when part changes ─────────────────────────────────
+    // ── Audio: change source when audioPart changes ───────────────────────────
     useEffect(() => {
-        const currentPartData = mockTestData.parts.find(p => p.id === activePart) as any;
+        const currentPartData = mockTestData.parts.find(p => p.id === audioPart) as any;
         const audioUrl = currentPartData?.audioUrl;
         if (audioRef.current && audioUrl) {
             audioRef.current.src = audioUrl;
             audioRef.current.load();
-            audioRef.current.play().catch(() => {/* autoplay blocked is fine */ });
+            if (testStarted) {
+                audioRef.current.play().catch(() => {/* autoplay blocked is fine */ });
+            }
         }
-    }, [activePart]);
+    }, [audioPart, testStarted]);
 
     // ── Audio ended: advance part ──────────────────────────────────────────────
     const handleAudioEnded = useCallback(() => {
-        if (activePart < TOTAL_PARTS) {
-            setActivePart(prev => prev + 1);
+        if (audioPart < TOTAL_PARTS) {
+            setAudioPart(prev => prev + 1);
+            if (testMode === 'full') {
+                setActivePart(audioPart + 1);
+            }
         } else {
             finishTest();
         }
-    }, [activePart]);
+    }, [audioPart, testMode, TOTAL_PARTS]);
 
     // ── Finish test ────────────────────────────────────────────────────────────
     const finishTest = useCallback(async () => {
@@ -486,10 +562,18 @@ const ListeningTestEngine: React.FC = () => {
                     q.content.forEach((item: any) => {
                         if (item.inline) checkQ(item.inline.number, answers[item.inline.inputId]);
                     });
+                } else if (q.type === 'fill_in_table') {
+                    q.rows.forEach((row: any) => {
+                        row.cells.forEach((cell: any) => {
+                            cell.content.forEach((item: any) => {
+                                if (item.inline) checkQ(item.inline.number, answers[item.inline.inputId]);
+                            });
+                        });
+                    });
                 } else if (q.type === 'multiple_choice_checkbox') {
                     const sel = answers[q.id]?.split(',') || [];
                     for (let i = 0; i < q.maxSelections; i++) checkQ(q.number + i, sel[i]);
-                } else if (q.type === 'matching_dropdown') {
+                } else if (q.type === 'matching_dropdown' || q.type === 'matching_table' || q.type === 'matching_drag_drop') {
                     q.subQuestions.forEach((sq: any) => checkQ(sq.number, answers[sq.id]));
                 } else {
                     checkQ(q.number, answers[q.id]);
@@ -672,7 +756,7 @@ const ListeningTestEngine: React.FC = () => {
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;
-        return `${m}:${s.toString().padStart(2, '0')}`;
+        return `${m}:${s.toString().padStart(2, '0')} `;
     };
 
     const currentPartData = mockTestData.parts.find(p => p.id === activePart);
@@ -684,10 +768,30 @@ const ListeningTestEngine: React.FC = () => {
         let count = 0;
         part.questions.forEach((q: any) => {
             if (q.type === 'inline_blanks') {
-                q.content.forEach((item: any) => { if (item.inline && answers[item.inline.inputId]) count++; });
+                if (q.simpleContent) {
+                    q.simpleContent.forEach((text: string) => {
+                        parseSimpleContent(text).forEach(p => { if (p.type === 'inline' && answers[p.inline!.inputId]) count++; });
+                    });
+                } else if (q.content) {
+                    q.content.forEach((item: any) => { if (item.inline && answers[item.inline.inputId]) count++; });
+                }
+            } else if (q.type === 'fill_in_table') {
+                if (q.simpleRows) {
+                    q.simpleRows.forEach((row: string[]) => {
+                        row.forEach(cellText => {
+                            parseSimpleContent(cellText).forEach(p => { if (p.type === 'inline' && answers[p.inline!.inputId]) count++; });
+                        });
+                    });
+                } else if (q.rows) {
+                    q.rows.forEach((row: any) => {
+                        row.cells.forEach((cell: any) => {
+                            cell.content.forEach((item: any) => { if (item.inline && answers[item.inline.inputId]) count++; });
+                        });
+                    });
+                }
             } else if (q.type === 'multiple_choice_checkbox') {
                 count += answers[q.id] ? answers[q.id].split(',').length : 0;
-            } else if (q.type === 'matching_dropdown') {
+            } else if (q.type === 'matching_dropdown' || q.type === 'matching_table' || q.type === 'matching_drag_drop') {
                 q.subQuestions.forEach((sq: any) => { if (answers[sq.id]) count++; });
             } else if (answers[q.id]) {
                 count++;
@@ -697,16 +801,80 @@ const ListeningTestEngine: React.FC = () => {
     };
 
     const getTotalQuestionsForPart = (partId: number) => {
-        const part = mockTestData.parts.find(p => p.id === partId);
+        const part = mockTestData.parts.find((p: any) => p.id === partId);
         if (!part) return 0;
-        let total = 0;
+        let count = 0;
         part.questions.forEach((q: any) => {
-            if (q.type === 'inline_blanks') total += q.content.filter((i: any) => i.inline).length;
-            else if (q.type === 'multiple_choice_checkbox') total += q.maxSelections;
-            else if (q.type === 'matching_dropdown') total += q.subQuestions.length;
-            else total++;
+            if (q.type === 'inline_blanks') {
+                if (q.simpleContent) {
+                    q.simpleContent.forEach((text: string) => {
+                        count += parseSimpleContent(text).filter(p => p.type === 'inline').length;
+                    });
+                } else {
+                    count += (q.content?.filter((c: any) => c.type === 'inline' || (c.type === 'sub_bullet' && c.inline) || (c.type === 'sub_sub_bullet' && c.inline)).length || 0);
+                }
+            } else if (q.type === 'fill_in_table') {
+                if (q.simpleRows) {
+                    q.simpleRows.forEach((row: string[]) => {
+                        row.forEach(cellText => {
+                            count += parseSimpleContent(cellText).filter(p => p.type === 'inline').length;
+                        });
+                    });
+                } else if (q.rows) {
+                    q.rows.forEach((row: any) => {
+                        row.cells.forEach((cell: any) => {
+                            count += (cell.content?.filter((c: any) => c.inline).length || 0);
+                        });
+                    });
+                }
+            } else if (q.type === 'matching_dropdown' || q.type === 'matching_table' || q.type === 'matching_drag_drop') {
+                count += (q.subQuestions?.length || 0);
+            } else if (q.type === 'multiple_choice_checkbox') {
+                count += q.maxSelections || 1;
+            } else {
+                count += 1;
+            }
         });
-        return total;
+        return count;
+    };
+
+    const getQuestionRangeForPart = (partId: number) => {
+        const part = mockTestData.parts.find((p: any) => p.id === partId);
+        if (!part || !part.questions || part.questions.length === 0) return '';
+
+        let firstQuestionNum: number | null = null;
+        let lastQuestionNum: number | null = null;
+
+        part.questions.forEach((q: any) => {
+            if (firstQuestionNum === null || q.number < firstQuestionNum) {
+                firstQuestionNum = q.number;
+            }
+
+            let qEndNumber = q.number;
+
+            if (q.type === 'inline_blanks') {
+                const inputs = q.content?.filter((c: any) => c.inline)?.map((c: any) => c.inline.number) || [];
+                if (inputs.length > 0) {
+                    qEndNumber = Math.max(...inputs);
+                }
+            } else if (q.type === 'matching_dropdown' || q.type === 'matching_table' || q.type === 'matching_drag_drop') {
+                const subs = q.subQuestions?.map((sq: any) => sq.number) || [];
+                if (subs.length > 0) {
+                    qEndNumber = Math.max(...subs);
+                }
+            } else if (q.type === 'multiple_choice_checkbox') {
+                qEndNumber = q.number + (q.maxSelections || 1) - 1;
+            }
+
+            if (lastQuestionNum === null || qEndNumber > lastQuestionNum) {
+                lastQuestionNum = qEndNumber;
+            }
+        });
+
+        if (firstQuestionNum !== null && lastQuestionNum !== null) {
+            return `Questions ${firstQuestionNum} -${lastQuestionNum} `;
+        }
+        return '';
     };
 
     const getQuestionsListForPart = (partId: number) => {
@@ -715,10 +883,30 @@ const ListeningTestEngine: React.FC = () => {
         let list: { id: string; number: number }[] = [];
         part.questions.forEach((q: any) => {
             if (q.type === 'inline_blanks') {
-                q.content.forEach((item: any) => { if (item.inline) list.push({ id: item.inline.inputId, number: item.inline.number }); });
+                if (q.simpleContent) {
+                    q.simpleContent.forEach((text: string) => {
+                        parseSimpleContent(text).forEach(p => { if (p.type === 'inline') list.push({ id: p.inline!.inputId, number: p.inline!.number }); });
+                    });
+                } else {
+                    q.content.forEach((item: any) => { if (item.inline) list.push({ id: item.inline.inputId, number: item.inline.number }); });
+                }
+            } else if (q.type === 'fill_in_table') {
+                if (q.simpleRows) {
+                    q.simpleRows.forEach((row: string[]) => {
+                        row.forEach(cellText => {
+                            parseSimpleContent(cellText).forEach(p => { if (p.type === 'inline') list.push({ id: p.inline!.inputId, number: p.inline!.number }); });
+                        });
+                    });
+                } else if (q.rows) {
+                    q.rows.forEach((row: any) => {
+                        row.cells.forEach((cell: any) => {
+                            cell.content.forEach((item: any) => { if (item.inline) list.push({ id: item.inline.inputId, number: item.inline.number }); });
+                        });
+                    });
+                }
             } else if (q.type === 'multiple_choice_checkbox') {
-                for (let i = 0; i < q.maxSelections; i++) list.push({ id: `${q.id}_part_${i}`, number: q.number + i });
-            } else if (q.type === 'matching_dropdown') {
+                for (let i = 0; i < (q.maxSelections || 1); i++) list.push({ id: `${q.id}_part_${i}`, number: q.number + i });
+            } else if (q.type === 'matching_dropdown' || q.type === 'matching_table' || q.type === 'matching_drag_drop') {
                 q.subQuestions.forEach((sq: any) => list.push({ id: sq.id, number: sq.number }));
             } else {
                 list.push({ id: q.id, number: q.number });
@@ -749,58 +937,87 @@ const ListeningTestEngine: React.FC = () => {
         >
             {/* Yellow highlight style injected globally */}
             <style>{`
-                mark.hl-yellow { background: #ffe066; color: inherit; border-radius: 2px; padding: 0 1px; }
-                .ctx-menu { box-shadow: 0 4px 18px rgba(0,0,0,0.18); border-radius: 4px; overflow: hidden; min-width: 140px; }
+mark.hl-yellow { background: #ffe066; color: inherit; border-radius: 2px; padding: 0 1px; }
+                .ctx-menu { box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18); border-radius: 4px; overflow: hidden; min-width: 140px; }
                 .ctx-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer; color: #1e293b; background: white; border: none; width: 100%; text-align: left; }
                 .ctx-item:hover { background: #f1f5f9; }
                 .ctx-item.disabled { color: #94a3b8; cursor: default; pointer-events: none; }
-            `}</style>
+`}</style>
             {/* Hidden audio element */}
             <audio ref={audioRef} onEnded={handleAudioEnded} style={{ display: 'none' }} />
 
-            {/* Fullscreen Entry Prompt */}
+            {/* Fullscreen Entry Prompt / Mode Selection */}
             {showFullscreenPrompt && (
-                <div className="fixed inset-0 z-[400] flex items-center justify-center" style={{ background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(6px)' }}>
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-                        {/* Header */}
-                        <div className="bg-[#f1d4d4] px-8 py-6 text-center">
-                            <div className="text-4xl mb-3">🖥️</div>
-                            <h2 className="text-xl font-black text-slate-800">Enter Fullscreen Mode</h2>
-                            <p className="text-xs font-medium text-slate-600 mt-1">For the best test experience</p>
+                <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 overflow-y-auto" style={{ background: 'rgba(15,23,42,0.92)', backdropFilter: 'blur(8px)' }}>
+                    <div className="bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full overflow-hidden border border-white/20">
+                        {/* Header Section */}
+                        <div className="bg-gradient-to-br from-[#f8e7e7] to-[#f1d4d4] px-10 py-10 text-center relative overflow-hidden">
+                            <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/20 rounded-full blur-3xl"></div>
+                            <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-rose-400/10 rounded-full blur-2xl"></div>
+
+                            <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-sm mb-6 text-4xl transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                                🎧
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-800 tracking-tight leading-tight mb-2">IELTS Listening Test</h2>
+                            <p className="text-sm font-bold text-rose-500 uppercase tracking-widest">{mockTestData.title}</p>
                         </div>
-                        {/* Body */}
-                        <div className="px-8 py-6">
-                            <ul className="space-y-3 mb-6">
-                                {[
-                                    '🔇 Minimise distractions',
-                                    '⏱ Timer is always visible',
-                                    '📋 Full question area visible',
-                                ].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-sm font-medium text-slate-700">
-                                        <span>{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
+
+                        {/* Mode Selection Cards */}
+                        <div className="px-10 py-10">
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 text-center">Select your preferred test mode</p>
+
+                            <div className="grid md:grid-cols-2 gap-6 mb-8">
+                                {/* Full Mock Card */}
+                                <button
+                                    onClick={() => setTestMode('full')}
+                                    className={`group relative text - left p - 6 rounded - 2xl border - 2 transition - all duration - 300 hover: shadow - xl ${testMode === 'full' ? 'border-rose-400 bg-rose-50/30 ring-4 ring-rose-100' : 'border-slate-100 hover:border-slate-300 bg-slate-50'} `}
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className={`w - 12 h - 12 rounded - xl flex items - center justify - center text - xl ${testMode === 'full' ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' : 'bg-white text-slate-400'} `}>🏆</div>
+                                        {testMode === 'full' && <div className="w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center"><svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></div>}
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-800 mb-1">Full Mock Test</h3>
+                                    <p className="text-[13px] text-slate-500 leading-relaxed font-medium">Sequential flow from Part 1 to 4. Strict exam conditions.</p>
+                                </button>
+
+                                {/* Practice Card */}
+                                <button
+                                    onClick={() => setTestMode('practice')}
+                                    className={`group relative text - left p - 6 rounded - 2xl border - 2 transition - all duration - 300 hover: shadow - xl ${testMode === 'practice' ? 'border-rose-400 bg-rose-50/30 ring-4 ring-rose-100' : 'border-slate-100 hover:border-slate-300 bg-slate-50'} `}
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className={`w - 12 h - 12 rounded - xl flex items - center justify - center text - xl ${testMode === 'practice' ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' : 'bg-white text-slate-400'} `}>🎯</div>
+                                        {testMode === 'practice' && <div className="w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center"><svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg></div>}
+                                    </div>
+                                    <h3 className="text-lg font-black text-slate-800 mb-1">Practice Mode</h3>
+                                    <p className="text-[13px] text-slate-500 leading-relaxed font-medium">Select individual parts to practice. Jump between parts freely.</p>
+                                </button>
+                            </div>
+
                             <button
                                 onClick={() => {
                                     setShowFullscreenPrompt(false);
+                                    setTestStarted(true);
                                     const el = document.documentElement;
                                     if (el.requestFullscreen) el.requestFullscreen().catch(() => { });
+                                    // Start audio on interaction
+                                    audioRef.current?.play().catch(e => console.error("Audio trigger failed:", e));
                                 }}
-                                className="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-black text-sm rounded-xl transition-colors"
+                                className="w-full py-5 bg-slate-900 border-2 border-slate-900 hover:bg-slate-800 text-white font-black text-base rounded-2xl transition-all duration-300 shadow-xl shadow-slate-900/20 active:scale-[0.98]"
                             >
-                                OK — Start Test in Fullscreen
+                                Start Your Test Now
                             </button>
-                            <button
-                                onClick={() => setShowFullscreenPrompt(false)}
-                                className="w-full mt-2 py-2 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                                Skip — continue without fullscreen
-                            </button>
+
+                            <p className="mt-4 text-[11px] text-center font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-rose-400 rounded-full"></span>
+                                Good luck with your preparation
+                                <span className="w-1.5 h-1.5 bg-rose-400 rounded-full"></span>
+                            </p>
                         </div>
                     </div>
                 </div>
             )}
+
 
             {/* Right-click Context Menu */}
             {ctxMenu && (
@@ -931,7 +1148,7 @@ const ListeningTestEngine: React.FC = () => {
                 <div className="flex flex-col justify-center h-full">
                     <span className="text-[11px] font-black uppercase tracking-wider text-slate-800 leading-none">{mockTestData.title}</span>
                     <div className="flex items-center gap-3 mt-0.5">
-                        <span className={`text-[11px] font-bold tabular-nums ${timeLeft < 300 ? 'text-rose-600 animate-pulse' : 'text-slate-700'}`}>
+                        <span className={`text - [11px] font - bold tabular - nums ${timeLeft < 300 ? 'text-rose-600 animate-pulse' : 'text-slate-700'} `}>
                             ⏱ {formatTime(timeLeft)} remaining
                         </span>
                     </div>
@@ -973,69 +1190,40 @@ const ListeningTestEngine: React.FC = () => {
                         {/* Part Header */}
                         <div className="border-b border-slate-200 bg-slate-50/50 p-6">
                             <h2 className="text-[22px] font-medium text-slate-800 mb-2">{currentPartData.name}</h2>
-                            <p className="text-[13px] text-slate-800 font-medium">{currentPartData.instructions}</p>
+                            {getQuestionRangeForPart(currentPartData.id) && (
+                                <p className="text-[14px] text-slate-600 font-medium">{getQuestionRangeForPart(currentPartData.id)}</p>
+                            )}
                         </div>
 
                         {/* Questions */}
                         <div className="p-8">
-                            {/* Multiple Choice */}
-                            {currentPartData.questions.filter((q: any) => q.type === 'multiple_choice').length > 0 && (
-                                <div>
-                                    <div className="mb-6 text-[13px] text-slate-600 font-medium">Choose the correct answer.</div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-4">
-                                        {currentPartData.questions.filter((q: any) => q.type === 'multiple_choice').map((q: any) => (
-                                            <MultipleChoiceRenderer key={q.id} data={q} currentAnswer={answers[q.id]} onAnswerChange={(a) => handleAnswer(q.id, a)} />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                            <div className="space-y-10">
+                                {currentPartData.questions.map((q: any) => (
+                                    <div key={q.id}>
+                                        {/* Instruction Block */}
+                                        {q.instructionGroup && (
+                                            <div className="mb-8">
+                                                <div className="bg-[#fcfaf7] border-l-4 border-rose-400 rounded-r-xl p-5 shadow-sm">
+                                                    <h3 className="text-[15px] font-black text-slate-800 mb-2">{q.instructionGroup.title}</h3>
+                                                    <div className="text-[14px] text-slate-700 font-medium leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: q.instructionGroup.prompt }} />
+                                                </div>
+                                            </div>
+                                        )}
 
-                            {/* Fill in Blanks */}
-                            {currentPartData.questions.filter((q: any) => q.type === 'fill_in_blanks').length > 0 && (
-                                <div className="mt-12">
-                                    <div className="mb-6">
-                                        <p className="text-[13px] text-slate-800 font-medium">Answer the questions. Write <span className="font-bold">NO MORE THAN THREE WORDS AND / OR A NUMBER</span> in each gap.</p>
+                                        {/* Question Renderers */}
+                                        <div className="w-full">
+                                            {q.type === 'multiple_choice' && <MultipleChoiceRenderer data={q} currentAnswer={answers[q.id]} onAnswerChange={(a) => handleAnswer(q.id, a)} />}
+                                            {q.type === 'fill_in_blanks' && <FillInBlanksRenderer data={q} currentAnswer={answers[q.id]} onAnswerChange={(a) => handleAnswer(q.id, a)} />}
+                                            {q.type === 'inline_blanks' && <InlineBlanksRenderer data={q} answers={answers} onAnswerChange={handleAnswer} />}
+                                            {q.type === 'multiple_choice_checkbox' && <MultipleChoiceCheckboxRenderer data={q} currentAnswer={answers[q.id]} onAnswerChange={(a) => handleAnswer(q.id, a)} />}
+                                            {q.type === 'matching_dropdown' && <MatchingDropdownRenderer data={q} answers={answers} onAnswerChange={handleAnswer} />}
+                                            {q.type === 'matching_table' && <MatchingTableRenderer data={q} answers={answers} onAnswerChange={handleAnswer} />}
+                                            {q.type === 'matching_drag_drop' && <MatchingDragDropRenderer data={q} answers={answers} onAnswerChange={handleAnswer} />}
+                                            {q.type === 'fill_in_table' && <FillInTableRenderer data={q} answers={answers} onAnswerChange={handleAnswer} />}
+                                        </div>
                                     </div>
-                                    <div className="space-y-2 mt-8">
-                                        {currentPartData.questions.filter((q: any) => q.type === 'fill_in_blanks').map((q: any) => (
-                                            <FillInBlanksRenderer key={q.id} data={q} currentAnswer={answers[q.id]} onAnswerChange={(a) => handleAnswer(q.id, a)} />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Inline Blanks */}
-                            {currentPartData.questions.filter((q: any) => q.type === 'inline_blanks').length > 0 && (
-                                <div className="mt-8">
-                                    <div className="space-y-8">
-                                        {currentPartData.questions.filter((q: any) => q.type === 'inline_blanks').map((q: any) => (
-                                            <InlineBlanksRenderer key={q.id} data={q} answers={answers} onAnswerChange={handleAnswer} />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Multiple Choice Checkbox */}
-                            {currentPartData.questions.filter((q: any) => q.type === 'multiple_choice_checkbox').length > 0 && (
-                                <div className="mt-8">
-                                    <div className="space-y-8">
-                                        {currentPartData.questions.filter((q: any) => q.type === 'multiple_choice_checkbox').map((q: any) => (
-                                            <MultipleChoiceCheckboxRenderer key={q.id} data={q} currentAnswer={answers[q.id]} onAnswerChange={(a) => handleAnswer(q.id, a)} />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Matching Dropdown */}
-                            {currentPartData.questions.filter((q: any) => q.type === 'matching_dropdown').length > 0 && (
-                                <div className="mt-8 border-t border-slate-200 pt-8">
-                                    <div className="space-y-12">
-                                        {currentPartData.questions.filter((q: any) => q.type === 'matching_dropdown').map((q: any) => (
-                                            <MatchingDropdownRenderer key={q.id} data={q} answers={answers} onAnswerChange={handleAnswer} />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -1053,12 +1241,17 @@ const ListeningTestEngine: React.FC = () => {
                         return (
                             <div
                                 key={part.id}
-                                className={`flex items-center gap-3 cursor-pointer group`}
-                                onClick={() => setActivePart(part.id)}
+                                className={`flex items - center gap - 3 cursor - pointer group`}
+                                onClick={() => {
+                                    setActivePart(part.id);
+                                    if (testMode === 'practice') {
+                                        setAudioPart(part.id);
+                                    }
+                                }}
                             >
                                 {/* Part Label */}
                                 <div className="flex items-center gap-1.5">
-                                    <span className={`text-[13px] font-black transition-colors ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                                    <span className={`text-[13px] font-black transition-colors ${isActive ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'} `}>
                                         {part.name}
                                     </span>
                                     {!isActive && (
@@ -1082,7 +1275,7 @@ const ListeningTestEngine: React.FC = () => {
                                                 <div
                                                     key={idx}
                                                     className={`w-6 h-6 flex items-center justify-center text-[11px] font-medium border transition-colors ${isAnswered ? 'border-slate-800 bg-slate-800 text-white' : 'border-blue-400 text-slate-700 bg-white'
-                                                        }`}
+                                                        } `}
                                                 >
                                                     {q.number}
                                                 </div>

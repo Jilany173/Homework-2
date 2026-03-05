@@ -14,6 +14,7 @@ import HomeworkReview from './components/Admin/HomeworkReview';
 import UserManager from './components/Admin/UserManager';
 import BatchManager from './components/Admin/BatchManager';
 import TestLibrary from './components/Admin/TestLibrary';
+import TestUploadDashboard from './components/Admin/TestUploadDashboard';
 import TeacherLayout from './components/Teacher/TeacherLayout';
 import TeacherDashboard from './components/Teacher/TeacherDashboard';
 import ClassControl from './components/Teacher/ClassControl';
@@ -167,6 +168,7 @@ const App: React.FC = () => {
           <Route path="/admin/batches" element={<BatchManager />} />
           <Route path="/admin/review" element={<HomeworkReview />} />
           <Route path="/admin/tests" element={<TestLibrary />} />
+          <Route path="/admin/upload-test" element={<TestUploadDashboard />} />
         </Route>
 
         {/* Teacher Routes */}

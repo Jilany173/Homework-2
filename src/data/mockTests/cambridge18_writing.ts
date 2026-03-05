@@ -22,7 +22,7 @@ export const cambridge18_writing = {
                     text: 'Summarise the information by selecting and reporting the main features, and make comparisons where relevant.'
                 }
             ],
-            imageUrl: "/cam18_writing_task1.jpg",
+            imageUrl: "/images/cam18_writing_task1.jpg",
             minimumWords: 150
         },
         {

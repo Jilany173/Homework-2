@@ -17,6 +17,10 @@ export const cambridge18_listening = {
                     id: 'survey_1',
                     number: 1,
                     type: 'inline_blanks',
+                    instructionGroup: {
+                        title: 'Questions 1-10',
+                        prompt: 'Complete the notes below.\nWrite <b>ONE WORD AND/OR A NUMBER</b> for each answer.'
+                    },
                     content: [
                         { type: 'title', text: 'Transport survey' },
                         { type: 'bullet', text: 'Name: Sadie Jones' },
@@ -48,6 +52,10 @@ export const cambridge18_listening = {
             instructions: "Listen and answer questions 11 - 20.", questions: [
                 {
                     id: 'q11', number: 11, type: 'multiple_choice',
+                    instructionGroup: {
+                        title: 'Questions 11-13',
+                        prompt: 'Choose the correct letter, <b>A, B</b> or <b>C</b>.'
+                    },
                     questionText: "Why does the speaker apologise about the seats?",
                     options: [
                         { label: 'A', text: 'They are too small.' },
@@ -75,6 +83,10 @@ export const cambridge18_listening = {
                 },
                 {
                     id: 'q14_15', number: 14, type: 'multiple_choice_checkbox',
+                    instructionGroup: {
+                        title: 'Questions 14 and 15',
+                        prompt: 'Choose <b>TWO</b> letters, <b>A-E</b>.'
+                    },
                     questionText: "Which TWO issues does the speaker ask the audience to consider before they apply to be volunteers?",
                     maxSelections: 2,
                     options: [
@@ -87,7 +99,11 @@ export const cambridge18_listening = {
                 },
                 {
                     id: 'q16_20', number: 16, type: 'matching_dropdown',
-                    questionText: "What does the speaker suggest would be helpful for each of the following areas of voluntary work? Choose the correct letter, A-G, next to Questions 16-20.",
+                    instructionGroup: {
+                        title: 'Questions 16-20',
+                        prompt: 'What does the speaker suggest would be helpful for each of the following areas of voluntary work?\nChoose the correct letter, <b>A-G</b>, next to Questions 16-20.'
+                    },
+                    questionText: "",
                     optionsBoxTitle: "Helpful things volunteers might offer",
                     options: [
                         { label: 'A', text: 'experience on stage' },
@@ -114,6 +130,10 @@ export const cambridge18_listening = {
             instructions: "Listen and answer questions 21 - 30.", questions: [
                 {
                     id: 'q21', number: 21, type: 'multiple_choice',
+                    instructionGroup: {
+                        title: 'Questions 21-26',
+                        prompt: '<div class="text-center text-[18px] font-black text-slate-800 mb-4">Talk on jobs in fashion design</div>Choose the correct letter, <b>A, B</b> or <b>C</b>.'
+                    },
                     questionText: "What problem did Chantal have at the start of the talk?",
                     options: [
                         { label: 'A', text: 'Her view of the speaker was blocked.' },
@@ -168,7 +188,11 @@ export const cambridge18_listening = {
                 },
                 {
                     id: 'q27_28', number: 27, type: 'multiple_choice_checkbox',
-                    questionText: "Which TWO mistakes did the speaker admit she made in her first job? Choose TWO letters, A-E.",
+                    instructionGroup: {
+                        title: 'Questions 27 and 28',
+                        prompt: 'Choose <b>TWO</b> letters, <b>A-E</b>.'
+                    },
+                    questionText: "Which TWO mistakes did the speaker admit she made in her first job?",
                     maxSelections: 2,
                     options: [
                         { label: 'A', text: 'being dishonest to her employer' },
@@ -180,7 +204,11 @@ export const cambridge18_listening = {
                 },
                 {
                     id: 'q29_30', number: 29, type: 'multiple_choice_checkbox',
-                    questionText: "Which TWO pieces of retail information do Hugo and Chantal agree would be useful? Choose TWO letters, A-E.",
+                    instructionGroup: {
+                        title: 'Questions 29 and 30',
+                        prompt: 'Choose <b>TWO</b> letters, <b>A-E</b>.'
+                    },
+                    questionText: "Which TWO pieces of retail information do Hugo and Chantal agree would be useful?",
                     maxSelections: 2,
                     options: [
                         { label: 'A', text: 'the reasons people return fashion items' },
@@ -200,6 +228,10 @@ export const cambridge18_listening = {
                     id: 'part4_1',
                     number: 31,
                     type: 'inline_blanks',
+                    instructionGroup: {
+                        title: 'Questions 31-40',
+                        prompt: 'Complete the notes below.\nWrite <b>ONE WORD ONLY</b> for each answer.'
+                    },
                     content: [
                         { type: 'title', text: 'Elephant translocation' },
                         { type: 'text', text: 'Reasons for overpopulation at Majete National Park' },

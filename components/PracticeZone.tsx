@@ -8,8 +8,9 @@ interface PracticeZoneProps {
 }
 
 const freeTests = [
-  { id: 'Cambridge IELTS 18', title: 'Cambridge IELTS 18', skill: 'listening', type: 'Academic', parts: 4, label: 'Listening' },
-  { id: 'Cambridge IELTS 18', title: 'Cambridge IELTS 18', skill: 'reading', type: 'Academic', passages: 3, label: 'Reading' },
+  { id: 'cam18_listening', title: 'Cambridge IELTS 18', skill: 'listening', type: 'Academic', parts: 4, label: 'Listening 1' },
+  { id: 'cam18_listening_test2', title: 'Cambridge IELTS 18', skill: 'listening', type: 'Academic', parts: 4, label: 'Listening 2' },
+  { id: 'cam18_reading', title: 'Cambridge IELTS 18', skill: 'reading', type: 'Academic', passages: 3, label: 'Reading' },
   { id: 'cam18_writing', title: 'Cambridge IELTS 18', skill: 'writing', type: 'Academic', parts: 2, label: 'Writing' },
 ];
 

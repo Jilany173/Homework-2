@@ -20,6 +20,21 @@ const testRegistry = {
                 { part: 4, file: '/audio/cambridge18_part4.mp3' },
             ],
         },
+        {
+            id: 'cam18_listening_test2',
+            title: 'Cambridge IELTS 18 – Listening test 2',
+            type: 'listening',
+            parts: 4,
+            questions: 40,
+            duration: '30 min',
+            status: 'active',
+            partAudios: [
+                { part: 1, file: '/audio/cam18_test2_part1.mp3' },
+                { part: 2, file: '/audio/cam18_test2_part2.mp3' },
+                { part: 3, file: '/audio/cam18_test2_part3.mp3' },
+                { part: 4, file: '/audio/cam18_test2_part4.mp3' },
+            ],
+        }
     ],
     reading: [
         {
@@ -52,6 +67,7 @@ type Tab = 'listening' | 'reading' | 'writing' | 'package';
 
 const partRanges: Record<string, [number, number][]> = {
     cam18_listening: [[1, 10], [11, 20], [21, 30], [31, 40]],
+    cam18_listening_test2: [[1, 10], [11, 20], [21, 30], [31, 40]],
     cam18_reading: [[1, 13], [14, 26], [27, 40]],
 };
 
@@ -74,6 +90,7 @@ const TestLibrary: React.FC = () => {
     const [isPackageModalOpen, setIsPackageModalOpen] = useState(false);
     const [editingPackageName, setEditingPackageName] = useState<string | null>(null);
     const [packages, setPackages] = useState<any[]>([]);
+    const [dynamicListeningTests, setDynamicListeningTests] = useState<any[]>([]);
 
     // Package Builder state
     const [packageName, setPackageName] = useState('');
@@ -90,6 +107,30 @@ const TestLibrary: React.FC = () => {
             if (data) setPackages(data);
         };
         fetchPackages();
+    }, []);
+
+    useEffect(() => {
+        const fetchDynamicTests = async () => {
+            const { data, error } = await supabase
+                .from('listening_tests')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (data) {
+                const formatted = data.map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    type: 'listening',
+                    parts: item.data.parts.length,
+                    questions: item.data.totalQuestions,
+                    duration: `${item.data.totalMinutes} min`,
+                    status: 'active',
+                    dynamic: true // Mark as dynamic
+                }));
+                setDynamicListeningTests(formatted);
+            }
+        };
+        fetchDynamicTests();
     }, []);
 
     const tabs: { key: Tab; label: string; icon: string }[] = [
@@ -302,7 +343,11 @@ const TestLibrary: React.FC = () => {
         return Object.values(key).filter(v => (v as string).trim() !== '').length;
     };
 
-    const currentTests = testRegistry[activeTab];
+    const mergedRegistry = {
+        ...testRegistry,
+        listening: [...testRegistry.listening, ...dynamicListeningTests]
+    };
+    const currentTests = mergedRegistry[activeTab] || [];
 
     return (
         <div>
@@ -325,7 +370,7 @@ const TestLibrary: React.FC = () => {
                     >
                         <span>{tab.icon}</span>{tab.label}
                         <span className={`ml-1 text-[11px] rounded-full px-1.5 py-0.5 font-black ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {testRegistry[tab.key].length}
+                            {mergedRegistry[tab.key]?.length || 0}
                         </span>
                     </button>
                 ))}
@@ -388,7 +433,7 @@ const TestLibrary: React.FC = () => {
                                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">📚</div>
                                         <div className="flex-1">
                                             <h3 className="text-lg font-black text-slate-800">{groupName}</h3>
-                                            <p className="text-xs text-slate-400 font-bold mt-0.5">{groupPkgs.length} Tests in bundle</p>
+                                            <p className="text-xs text-slate-400 font-bold mt-0.5">{(groupPkgs as any[]).length} Tests in bundle</p>
                                         </div>
                                         <button
                                             onClick={() => {
