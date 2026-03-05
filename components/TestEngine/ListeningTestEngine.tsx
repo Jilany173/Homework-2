@@ -585,22 +585,26 @@ const ListeningTestEngine: React.FC = () => {
             ? (correct >= 39 ? '9.0' : correct >= 37 ? '8.5' : correct >= 35 ? '8.0' : correct >= 33 ? '7.5' : correct >= 30 ? '7.0' : correct >= 27 ? '6.5' : correct >= 23 ? '6.0' : correct >= 20 ? '5.5' : correct >= 16 ? '5.0' : '< 5.0')
             : null;
 
-        // Get student ID
-        const { data: { user } } = await supabase.auth.getUser();
+        try {
+            // Get student ID
+            const { data: { user } } = await supabase.auth.getUser();
 
-        if (user) {
-            // Convert answers to JSONB-friendly format
-            await supabase.from('test_submissions').insert({
-                student_id: user.id,
-                test_id: TEST_ID,
-                test_type: 'listening',
-                answers: answers,
-                total_questions: totalQ,
-                attempted,
-                correct,
-                band_score: bandScore,
-                time_spent_sec: timeSpent,
-            });
+            if (user) {
+                // Convert answers to JSONB-friendly format
+                await supabase.from('test_submissions').insert({
+                    student_id: user.id,
+                    test_id: TEST_ID,
+                    test_type: 'listening',
+                    answers: answers,
+                    total_questions: totalQ,
+                    attempted,
+                    correct,
+                    band_score: bandScore,
+                    time_spent_sec: timeSpent,
+                });
+            }
+        } catch (error) {
+            console.error("Error submitting test:", error);
         }
 
         // Exit fullscreen when test finishes
